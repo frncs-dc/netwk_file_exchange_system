@@ -25,7 +25,7 @@ def useCommand(command, s):
         try:
             with open(filename, 'rb') as f:
                 data = f.read()
-                s.sendall(data)
+                s.sendall(data)         
         except FileNotFoundError:
             print("Error: File not found.")
 
@@ -40,9 +40,12 @@ def sendToServer(s, command):
 
 def checkRegistered(user):
     # code here
-    isExist = os.path.exists(user)
-
-    return isExist
+    print("Enter Username: ")
+    user = input()
+    if os.path.exists(user):
+        return True
+    else:
+        return print("Unregistered User")
 
 def joinServer(server_ip, server_port, s):
     try:

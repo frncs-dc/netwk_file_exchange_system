@@ -59,12 +59,12 @@ def handle_client(client_socket, addr):
                 handler = command.split()[1]
                 clients[handler] = client_socket
                 if os.path.exists(handler):
-                    client_socket.send(f"{handler} is already registered".encode())
+                    client_socket.send(f"Error: Registration failed. Handler or alias already exists.".encode())
                 else:
                     os.mkdir(handler)
-                    client_socket.send(f"Handle registered as {handler}".encode())
+                    client_socket.send(f"Welcome {handler}.".encode())
 
-            elif command.startswith('/store') and handler:
+            elif command.startswith('/store') and os.path.exists(handler):
                 _, filename = command.split()
                 client_socket.send("Receiving file...".encode())
                 receive_file(client_socket, filename)
