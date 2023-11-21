@@ -29,6 +29,10 @@ def useCommand(command, s):
         except FileNotFoundError:
             print("Error: File not found.")
 
+    elif command.startswith('/register'):
+        _, handler = command.split()
+        sendToServer(s, command)
+
 def sendToServer(s, command):
     s.send(command.encode())
     response = s.recv(4096)

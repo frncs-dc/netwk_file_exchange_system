@@ -58,7 +58,11 @@ def handle_client(client_socket, addr):
             if command.startswith('/register'):
                 handler = command.split()[1]
                 clients[handler] = client_socket
-                client_socket.send(f"Handle registered as {handler}".encode())
+                if os.path.exists(handler):
+                    client_socket.send(f"{handler} is already registered".encode())
+                else:
+                    os.mkdir(handler)
+                    client_socket.send(f"Handle registered as {handler}".encode())
 
             elif command.startswith('/store') and handler:
                 _, filename = command.split()
