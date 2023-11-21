@@ -6,16 +6,7 @@
 #         getError()
     
 #     else:
-#         directory = "Directory"
-#         isExist = os.path.exists(directory)
 
-#         if(isExist):
-#             print("Directory exists")
-#             files = os.listdir(directory)
-#             print(files)
-#         else:
-#             os.mkdir(directory) 
-#             print("Directory '%s' created" %directory)
 
 # request_directory("/dir")
 import socket
@@ -47,6 +38,28 @@ def start_server():
         client_handler = threading.Thread(target=handle_client, args=(client, addr))
         client_handler.start()
 
+def convertToString(files):
+
+    dir_list = ''
+
+    for x in files:
+        dir_list += x + '\n'
+    
+    return dir_list
+
+def getCommandList():
+    cmd_list = [
+                "/? - Request command help to output all Input Syntax commands for references",
+                "/join <server_ip_add> <port> - Connect to the server application",
+                "/leave - Disconnect to the server application",
+                "/register <handle> - Register a unique handle or alias",
+                "/store <filename> - Send file to server",
+                "/dir - Request directory file list from a server",
+                "/get <filename> - Fetch a file from a server" 
+    ]
+
+    return cmd_list
+
 def handle_client(client_socket, addr):
     handler = None
     try:
@@ -67,6 +80,20 @@ def handle_client(client_socket, addr):
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
         
+            elif command == '/dir':
+                directory = "Server Directory"
+                isExist = os.path.exists(directory)
+
+                if(isExist):
+                    files = os.listdir(directory)
+                    client_socket.send((directory + ": \n" + convertToString(files)).encode())
+                else:
+                    os.mkdir(directory) 
+                    print("Directory '%s' created" %directory)
+            
+            elif command == '/?':
+                client_socket.send(convertToString(getCommandList()).encode())
+
             elif command == '/leave':
                 client_socket.send("Connection closed. Thank you!".encode())
                 client_socket.close()
@@ -76,7 +103,7 @@ def handle_client(client_socket, addr):
                 break
 
             else:
-                client_socket.send("Error: Invalid command or handler not registered.".encode())
+                client_socket.send("Error: Rawr Invalid command or handler not registered.".encode())
 
     except Exception as e:
         client_socket.send(f"Error: {e}".encode())

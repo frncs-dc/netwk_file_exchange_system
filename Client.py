@@ -16,6 +16,12 @@ def useCommand(command, s):
         server_port = int(details[2])
         joinServer(server_ip, server_port, s)
     
+    if command == '/dir':
+        sendToServer(s, command)
+
+    if command == '/?':
+        sendToServer(s, command)
+
     elif command == '/leave':
         sendToServer(s, command)
 
