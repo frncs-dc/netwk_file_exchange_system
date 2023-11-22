@@ -12,7 +12,7 @@ def getCommandText(textboxCommand):
 def useCommand(command):
     global curr_user
     global s
-    ctr_join  = 0
+    ctr_join = 0
 
     if command.startswith('/join'):
         if(curr_user and ctr_join == 0):
