@@ -64,16 +64,7 @@ def handle_client(client_socket, addr):
         while True:
             command = client_socket.recv(1024).decode()
             if not command:
-                break
-            
-            if command.startswith('/register'):
-                handler = command.split()[1]
-                clients[handler] = client_socket
-                if os.path.exists(handler):
-                    client_socket.send(f"Error: Registration failed. Handler or alias already exists.".encode())
-                else:
-                    os.mkdir(handler)
-                    client_socket.send(f"Welcome {handler}.".encode())  
+                break  
 
             elif command.startswith('/store'):
                 _, filename = command.split()
