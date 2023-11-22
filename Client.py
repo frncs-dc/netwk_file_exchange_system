@@ -29,13 +29,15 @@ def useCommand(command):
         sendToServer(command)
 
     elif command == '/leave':
-        sendToServer(command)
-        s.close()
+        try:
+            sendToServer(command)
+            s.close()
+        
+        except Exception as e:
+            print('Error: Disconnection failed. Please connect to the server first') #change 5  SAFE
 
     elif command.startswith('/store'):
         _, filename = command.split()
-
-        print('isTrue: ', os.path.exists(curr_user + '/' + filename ))
 
         if(os.path.exists(curr_user + '/' + filename )):            # checks if the file is in the dir
             sendToServer(command)                                   # sends the command to the server process
@@ -43,16 +45,17 @@ def useCommand(command):
                 data = f.read()                                     # assign the content of the file to 'data'
                 s.sendall(data)                                     # send 
             response = s.recv(4096)
-            print(response.decode())
+            print(f"{curr_user}{response.decode()}") #change 4 SAFE
         else:
             print("Error: File not found.")
 
     elif command.startswith('/register'):
         curr_user = command.split()[1]
         if os.path.exists(curr_user):
-            print("User already exists!")
+            print("Error: Registration failed. Handle or alias already exists.") # Change number 1 SAFE
         else:
             os.mkdir(curr_user)
+            print(f"Welcome {curr_user}!")  #Change 3 SAFE
 
 def sendToServer(command):
     global s
@@ -68,9 +71,9 @@ def joinServer(server_ip, server_port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((server_ip, server_port));
         print("Connected to the File Exchange Server is successful!")
-        print(curr_user + " has joined the server!")
+        # Change 2 print(curr_user + " has joined the server!")  SAFE
     except:
-        print("Error!")
+        print("Error: Connection to the Server has failed! Please check IP Address and Port Number.") # CHange 7 SAFE
 
 def main():
     global s
