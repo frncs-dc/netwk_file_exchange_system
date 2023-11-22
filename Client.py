@@ -34,9 +34,7 @@ def useCommand(command):
 
     elif command.startswith('/store'):
         _, filename = command.split()
-
-        print('isTrue: ', os.path.exists(curr_user + '/' + filename ))
-
+        
         if(os.path.exists(curr_user + '/' + filename )):            # checks if the file is in the dir
             sendToServer(command)                                   # sends the command to the server process
             with open(curr_user + '/' + filename, 'rb') as f:       # reads the content of the file if it exists

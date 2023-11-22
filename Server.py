@@ -8,7 +8,6 @@ def receive_file(client_socket, filename,save_directory):
     try:
         full_path = os.path.join(save_directory, filename)
         f = open(full_path, "wb")
-        print(f)
         if f:
             data = client_socket.recv(819200)
             f.write(data)
