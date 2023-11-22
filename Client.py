@@ -12,13 +12,17 @@ def getCommandText(textboxCommand):
 def useCommand(command):
     global curr_user
     global s
+    ctr_join  = 0
 
     if command.startswith('/join'):
-        if(curr_user):
+        if(curr_user and ctr_join == 0):
             details = command.split()
             server_ip = details[1]
             server_port = int(details[2])
             joinServer(server_ip, server_port)
+            ctr_join +=  1
+        elif(ctr_join > 0):
+            print("You are already in a server") #added for now
         else:
             print("Register user first!")
 
@@ -29,8 +33,11 @@ def useCommand(command):
         sendToServer(command)
 
     elif command == '/leave':
-        sendToServer(command)
-        s.close()
+        if(ctr_join == 1):
+            sendToServer(command)
+            s.close()
+        else:
+            print("Error: Disconnection failed. Please connect to the server first.")
 
     elif command.startswith('/store'):
         _, filename = command.split()
@@ -41,16 +48,18 @@ def useCommand(command):
                 data = f.read()                                     # assign the content of the file to 'data'
                 s.sendall(data)                                     # send 
             response = s.recv(4096)
-            print(response.decode())
+            print(curr_user + response.decode())
         else:
             print("Error: File not found.")
 
     elif command.startswith('/register'):
         curr_user = command.split()[1]
         if os.path.exists(curr_user):
-            print("User already exists!")
+            print("Error: Registration failed. Handle or alias already exists.")
         else:
             os.mkdir(curr_user)
+            print(f"Welcome {curr_user}!")
+    
 
 def sendToServer(command):
     global s
@@ -66,9 +75,8 @@ def joinServer(server_ip, server_port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((server_ip, server_port));
         print("Connected to the File Exchange Server is successful!")
-        print(curr_user + " has joined the server!")
     except:
-        print("Error!")
+        print("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
 
 def main():
     global s

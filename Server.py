@@ -12,8 +12,6 @@ def receive_file(client_socket, filename,save_directory):
             data = client_socket.recv(819200)
             f.write(data)
             f.close()
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
         else:
             print("Error")
     except Exception as e:
@@ -50,7 +48,7 @@ def getCommandList():
     ]
     return cmd_list
 
-def handle_client(client_socket, addr):
+def handle_client(client_socket, ):
     try:
         while True:
             command = client_socket.recv(1024).decode()
@@ -60,7 +58,8 @@ def handle_client(client_socket, addr):
             elif command.startswith('/store'):
                 _, filename = command.split()
                 save_directory = "Server Directory"
-                client_socket.send("Receiving file...".encode())
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
                 receive_file(client_socket, filename, save_directory)
 
             elif command == '/dir':
@@ -80,7 +79,6 @@ def handle_client(client_socket, addr):
             elif command == '/leave':
                 client_socket.send("Connection closed. Thank you!".encode())
                 client_socket.close()
-                print(f"Client {addr} disconnected.")
                 break
 
             else:
