@@ -2,44 +2,58 @@ import socket
 import tkinter as tk
 import os
 
-def getCommandText(my_socket, textboxCommand):
+def getCommandText(textboxCommand):
     # gets the command from the text inputted
     command = textboxCommand.get(1.0,'end-1c')
 
     # function to see which command would be used
-    useCommand(command, my_socket)
+    useCommand(command)
 
-def useCommand(command, s):
+def useCommand(command):
+    global curr_user
+    global s
+
     if command.startswith('/join'):
-        details = command.split()
-        server_ip = details[1]
-        server_port = int(details[2])
-        joinServer(server_ip, server_port, s)
-    
-    if command == '/dir':
-        sendToServer(s, command)
+        if(curr_user):
+            details = command.split()
+            server_ip = details[1]
+            server_port = int(details[2])
+            joinServer(server_ip, server_port)
+        else:
+            print("Register user first!")
 
-    if command == '/?':
-        sendToServer(s, command)
+    elif command == '/dir':
+        sendToServer(command)
+
+    elif command == '/?':
+        sendToServer(command)
 
     elif command == '/leave':
-        sendToServer(s, command)
+        sendToServer(command)
+        s.close()
 
     elif command.startswith('/store'):
         _, filename = command.split()
-        sendToServer(s, command)
+        sendToServer(command)
         try:
-            with open(filename, 'rb') as f:
+            with open(curr_user + '/' + filename, 'rb') as f:
                 data = f.read()
-                s.sendall(data)         
-        except FileNotFoundError:
+                s.sendall(data)        
+        except:   
             print("Error: File not found.")
+        response = s.recv(4096)
+        print(response.decode())
 
     elif command.startswith('/register'):
-        _, handler = command.split()
-        sendToServer(s, command)
+        curr_user = command.split()[1]
+        if os.path.exists(curr_user):
+            print("User already exists!")
+        else:
+            os.mkdir(curr_user)
 
-def sendToServer(s, command):
+def sendToServer(command):
+    global s
+
     s.send(command.encode())
     response = s.recv(4096)
     print(response.decode())
@@ -53,16 +67,21 @@ def checkRegistered(user):
     else:
         return print("Unregistered User")
 
-def joinServer(server_ip, server_port, s):
+def joinServer(server_ip, server_port):
+    global s
+    global curr_user
     try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((server_ip, server_port));
         print("Connected to the File Exchange Server is successful!")
+        print(curr_user + "has joined the server!")
     except:
         print("Error!")
 
 def main():
-    my_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    
+    global s
+    global curr_user
+
     ROOT = tk.Tk()
     ROOT.geometry("500x500")
     ROOT.title("Python File Sharing")
@@ -76,7 +95,7 @@ def main():
 
     # Clicks this to execute the command
     buttonCommand = tk.Button(ROOT, text="Enter", font=('Helvetica', 18), 
-                              command=lambda:getCommandText(my_socket, textboxCommand))
+                              command=lambda:getCommandText(textboxCommand))
     buttonCommand.pack(padx=10, pady=10)
 
 

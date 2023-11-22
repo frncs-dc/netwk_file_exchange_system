@@ -1,14 +1,3 @@
-# def getError():
-#     print("error")
-
-# def request_directory(command):
-#     if command != '/dir':
-#         getError()
-    
-#     else:
-
-
-# request_directory("/dir")
 import socket
 import threading
 import os
@@ -18,17 +7,26 @@ import ipaddress
 clients = {}  # Dictionary to store client handlers
 
 def receive_file(client_socket, filename):
-    with open(filename, 'wb') as f:
-        while True:
+    try:
+        f = open(filename, "wb")
+        if(f):
             data = client_socket.recv(1024)
-            if not data:
-                break
+            print(data)
             f.write(data)
+            f.close()
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
+        else:
+            print("Error")
+    except Exception as e:
+        print(f"Error receiving file {e}")
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    ip = input()
-    port = input()
+    # ip = input()
+    # port = input()
+    ip = "localhost"
+    port = "12345"
     server.bind((ip, int(port)))
     server.listen(5)
     print("Server listening on port" + port)
@@ -75,14 +73,12 @@ def handle_client(client_socket, addr):
                     client_socket.send(f"Error: Registration failed. Handler or alias already exists.".encode())
                 else:
                     os.mkdir(handler)
-                    client_socket.send(f"Welcome {handler}.".encode())
+                    client_socket.send(f"Welcome {handler}.".encode())  
 
-            elif command.startswith('/store') and os.path.exists(handler):
+            elif command.startswith('/store'):
                 _, filename = command.split()
                 client_socket.send("Receiving file...".encode())
                 receive_file(client_socket, filename)
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
         
             elif command == '/dir':
                 directory = "Server Directory"
