@@ -34,15 +34,18 @@ def useCommand(command):
 
     elif command.startswith('/store'):
         _, filename = command.split()
-        sendToServer(command)
-        try:
-            with open(curr_user + '/' + filename, 'rb') as f:
-                data = f.read()
-                s.sendall(data)        
-        except:   
+
+        print('isTrue: ', os.path.exists(curr_user + '/' + filename ))
+
+        if(os.path.exists(curr_user + '/' + filename )):            # checks if the file is in the dir
+            sendToServer(command)                                   # sends the command to the server process
+            with open(curr_user + '/' + filename, 'rb') as f:       # reads the content of the file if it exists
+                data = f.read()                                     # assign the content of the file to 'data'
+                s.sendall(data)                                     # send 
+            response = s.recv(4096)
+            print(response.decode())
+        else:
             print("Error: File not found.")
-        response = s.recv(4096)
-        print(response.decode())
 
     elif command.startswith('/register'):
         curr_user = command.split()[1]
@@ -58,15 +61,6 @@ def sendToServer(command):
     response = s.recv(4096)
     print(response.decode())
 
-def checkRegistered(user):
-    # code here
-    print("Enter Username: ")
-    user = input()
-    if os.path.exists(user):
-        return True
-    else:
-        return print("Unregistered User")
-
 def joinServer(server_ip, server_port):
     global s
     global curr_user
@@ -74,7 +68,7 @@ def joinServer(server_ip, server_port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((server_ip, server_port));
         print("Connected to the File Exchange Server is successful!")
-        print(curr_user + "has joined the server!")
+        print(curr_user + " has joined the server!")
     except:
         print("Error!")
 
