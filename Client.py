@@ -1,6 +1,8 @@
 import socket
 import tkinter as tk
 import os
+from datetime import datetime
+
 
 def getCommandText(textboxCommand):
     # gets the command from the text inputted
@@ -9,18 +11,36 @@ def getCommandText(textboxCommand):
     # function to see which command would be used
     useCommand(command)
 
+def receiveFileFromServer(command):
+
+    global curr_user
+    global s
+
+    _, filename = command.split()
+
+    try:
+        full_path = os.path.join(curr_user, filename)
+        f = open(full_path, "wb")
+        if f:
+            data = s.recv(819200)
+            print(data)
+            f.write(data)
+            f.close()
+            print("File received from Server: " + filename)
+        else:
+            print("Error")
+    except Exception as e:
+        print(f"Error receiving file {e}")
+
 def useCommand(command):
     global curr_user
     global s
 
     if command.startswith('/join'):
-        if(curr_user):
-            details = command.split()
-            server_ip = details[1]
-            server_port = int(details[2])
-            joinServer(server_ip, server_port)
-        else:
-            print("Register user first!")
+        details = command.split()
+        server_ip = details[1]
+        server_port = int(details[2])
+        joinServer(server_ip, server_port)
 
     elif command == '/dir':
         sendToServer(command)
@@ -34,7 +54,7 @@ def useCommand(command):
             s.close()
         
         except Exception as e:
-            print('Error: Disconnection failed. Please connect to the server first') #change 5  SAFE
+            print('Error: Disconnection failed. Please connect to the server first')
 
     elif command.startswith('/store'):
         _, filename = command.split()
@@ -45,24 +65,33 @@ def useCommand(command):
                 data = f.read()                                     # assign the content of the file to 'data'
                 s.sendall(data)                                     # send 
             response = s.recv(4096)
-            print(f"{curr_user}{response.decode()}") #change 4 SAFE
+            print(f"{curr_user}{response.decode()}")
         else:
             print("Error: File not found.")
+        
+    elif command.startswith('/get'):
+        sendToServer(command)        
 
     elif command.startswith('/register'):
-        curr_user = command.split()[1]
-        if os.path.exists(curr_user):
-            print("Error: Registration failed. Handle or alias already exists.") # Change number 1 SAFE
-        else:
-            os.mkdir(curr_user)
-            print(f"Welcome {curr_user}!")  #Change 3 SAFE
+        try:
+            sendToServer(command)
+        except:
+            print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
 
 def sendToServer(command):
     global s
-
+    global curr_user
+    
     s.send(command.encode())
-    response = s.recv(4096)
-    print(response.decode())
+    if command.startswith('/get'):
+        receiveFileFromServer(command)
+    else:
+        response = s.recv(4096)
+        print(response.decode())
+
+        if response.decode().startswith('Welcome'):
+            curr_user = command.split()[1]
+            
 
 def joinServer(server_ip, server_port):
     global s
@@ -71,9 +100,9 @@ def joinServer(server_ip, server_port):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((server_ip, server_port));
         print("Connected to the File Exchange Server is successful!")
-        # Change 2 print(curr_user + " has joined the server!")  SAFE
+
     except:
-        print("Error: Connection to the Server has failed! Please check IP Address and Port Number.") # CHange 7 SAFE
+        print("Error: Connection to the Server has failed! Please check IP Address and Port Number.") 
 
 def main():
     global s
