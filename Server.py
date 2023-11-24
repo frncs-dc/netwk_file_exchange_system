@@ -16,7 +16,7 @@ def receive_file(client_socket, filename,save_directory):
             f.write(data)
             f.close()
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+            client_socket.send(f"<{timestamp}> File {filename} stored successfully.".encode())
         else:
             print("Error")
     except Exception as e:
@@ -71,17 +71,9 @@ def getCommandList():
 
     return cmd_list
 
-def broadcast(message, sender_handler):
-    with lock:
-        for handler, client_socket in clients.items():
-            if handler != sender_handler:
-                try:
-                    client_socket.send(message.encode())
-                except Exception as e:
-                    print(f"Error broadcasting to {handler}: {e}")
-                
 
-
+        
+        
 def handle_client(client_socket, addr):
     handler = None
     try:
@@ -105,7 +97,13 @@ def handle_client(client_socket, addr):
                 receive_file(client_socket, filename, save_directory)
                 
                 broadcast_message = f"User {curr_user} stored file: {filename}"
-                broadcast(broadcast_message, curr_user)
+                print(broadcast_message)
+                for client_socket in clients.items():
+                    if client_socket in clients.items() != curr_user:
+                        try:
+                            client_socket.send(broadcast_message.encode())
+                        except Exception as e:
+                            print(f"Error broadcasting to {handler}: {e}")
                 
             elif command.startswith('/get'):
                 _, filename = command.split()

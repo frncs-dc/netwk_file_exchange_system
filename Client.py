@@ -55,12 +55,10 @@ def useCommand(command):
             with open(curr_user + '/' + filename, 'rb') as f:
                 data = f.read()
                 s.sendall(data)
-            
-            broadcast_message = f"User {curr_user} stored file: {filename}"
-            s.send(broadcast_message.encode())
-
-            response = s.recv(4096)
-            print(f"{curr_user}{response.decode()}")
+            response1 = s.recv(4096)
+            print(f"{curr_user}{response1.decode()}")
+            response2 = s.recv(4096)
+            print(f"{response2.decode()}")
         else:
             print("Error: File not found.")
 
