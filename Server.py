@@ -75,19 +75,21 @@ def getCommandList():
         
         
 def handle_client(client_socket, addr):
-    handler = None
+    curr_user = None
+
     try:
         while True:
             command = client_socket.recv(1024).decode()
             if not command:
-                break  
-            
+                break
+
             elif command.startswith('/register'):
                 curr_user = command.split()[1]
                 if os.path.exists(curr_user):
                     client_socket.send("Error: Registration failed. Handle or alias already exists.".encode())
                 else:
                     os.mkdir(curr_user)
+                    clients[curr_user] = (client_socket, addr)
                     client_socket.send(f"Welcome {curr_user}".encode())
 
             elif command.startswith('/store'):
@@ -95,16 +97,16 @@ def handle_client(client_socket, addr):
                 save_directory = "Server Directory"
                 client_socket.send("Storing file...".encode())
                 receive_file(client_socket, filename, save_directory)
-                
+
                 broadcast_message = f"User {curr_user} stored file: {filename}"
                 print(broadcast_message)
-                for client_socket in clients.items():
-                    if client_socket in clients.items() != curr_user:
+                for client, _ in clients.values():
+                    if client != client_socket:
                         try:
-                            client_socket.send(broadcast_message.encode())
+                            client.send(broadcast_message.encode())
                         except Exception as e:
-                            print(f"Error broadcasting to {handler}: {e}")
-                
+                            print(f"Error broadcasting to {client}: {e}")
+
             elif command.startswith('/get'):
                 _, filename = command.split()
                 fetchFile(client_socket, filename)
@@ -126,8 +128,8 @@ def handle_client(client_socket, addr):
             elif command == '/leave':
                 client_socket.send("Connection closed. Thank you!".encode())
                 client_socket.close()
-                if handler:
-                    del clients[handler]
+                if curr_user:
+                    del clients[curr_user]
                 print(f"Client {addr} disconnected.")
                 break
 
