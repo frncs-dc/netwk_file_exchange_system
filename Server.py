@@ -71,13 +71,15 @@ def getCommandList():
 
     return cmd_list
 
-def broadcast(message):
+def broadcast(message, sender_handler):
     with lock:
         for handler, client_socket in clients.items():
-            try:
-                client_socket.send(message.encode())
-            except Exception as e:
-                print(f"Error broadcasting to {handler}: {e}")              
+            if handler != sender_handler:
+                try:
+                    client_socket.send(message.encode())
+                except Exception as e:
+                    print(f"Error broadcasting to {handler}: {e}")
+                
 
 
 def handle_client(client_socket, addr):
@@ -99,8 +101,11 @@ def handle_client(client_socket, addr):
             elif command.startswith('/store'):
                 _, filename = command.split()
                 save_directory = "Server Directory"
-                client_socket.send("Receiving file...".encode())
+                client_socket.send("Storing file...".encode())
                 receive_file(client_socket, filename, save_directory)
+                
+                broadcast_message = f"User {curr_user} stored file: {filename}"
+                broadcast(broadcast_message, curr_user)
                 
             elif command.startswith('/get'):
                 _, filename = command.split()
