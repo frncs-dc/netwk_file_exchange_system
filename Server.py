@@ -5,7 +5,7 @@ from datetime import datetime
 import ipaddress
 
 clients = {}  # Dictionary to store client handlers
-
+lock = threading.Lock()
 def receive_file(client_socket, filename,save_directory):
     try:
         full_path = os.path.join(save_directory, filename)
@@ -70,6 +70,15 @@ def getCommandList():
     ]
 
     return cmd_list
+
+def broadcast(message):
+    with lock:
+        for handler, client_socket in clients.items():
+            try:
+                client_socket.send(message.encode())
+            except Exception as e:
+                print(f"Error broadcasting to {handler}: {e}")              
+
 
 def handle_client(client_socket, addr):
     handler = None

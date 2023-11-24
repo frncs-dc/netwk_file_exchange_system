@@ -68,6 +68,9 @@ def useCommand(command):
             print(f"{curr_user}{response.decode()}")
         else:
             print("Error: File not found.")
+
+        broadcast_message = f"User {curr_user} stored file: {filename}"
+        s.send(broadcast_message.encode())
         
     elif command.startswith('/get'):
         sendToServer(command)        
