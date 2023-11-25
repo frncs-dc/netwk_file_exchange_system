@@ -39,14 +39,14 @@ def useCommand(command, outputString):
     
     elif command.startswith('/register'):
         try:
-            sendToServer(command, outputString)
+            sendToServer(command)
         except:
             print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
             outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
     
     elif command == '/leave':
         try:
-            sendToServer(command, outputString)
+            sendToServer(command)
             s.close()
             print("Connection closed. Thank you!")
             outputString.set("Connection closed. Thank you!")
@@ -58,10 +58,10 @@ def useCommand(command, outputString):
         outputString.set("Error: Command parameters do not match or is not allowed.")
     
     elif command == '/dir' and curr_user:
-        sendToServer(command, outputString)
+        sendToServer(command)
 
     elif command == '/?' and curr_user:
-        sendToServer(command, outputString)
+        sendToServer(command)
 
     elif command.startswith('/store') and curr_user:
         try:
@@ -71,7 +71,7 @@ def useCommand(command, outputString):
             outputString.set("Error: Command parameters do not match or is not allowed.")
 
         if(os.path.exists(curr_user + '/' + filename )):           
-            sendToServer(command, outputString)                  
+            sendToServer(command)                  
             with open(curr_user + '/' + filename, 'rb') as f:       
                 data = f.read()                                     
                 s.sendall(data)                                     
@@ -82,12 +82,12 @@ def useCommand(command, outputString):
         # s.send(broadcast_message.encode())
         
     elif command.startswith('/get') and curr_user:
-        sendToServer(command, outputString)        
+        sendToServer(command)        
     
     else:
         outputString.set("Error: Command not found.")
 
-def sendToServer(command, outputString):
+def sendToServer(command):
     global s
     global curr_user
 
@@ -173,6 +173,8 @@ def main():
                            wraplength=450,
                            justify="center")
     labelOutput.pack(padx=10)
+
+    exit_flag.set()
     
     ROOT.mainloop()
 
