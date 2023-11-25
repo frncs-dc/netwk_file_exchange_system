@@ -12,6 +12,7 @@ def receive_file(client_socket, filename,save_directory):
         f = open(full_path, "wb")
         print(full_path)
         if f:
+            client_socket.send("Storing File to Server".encode())
             data = client_socket.recv(819200)
             f.write(data)
             f.close()
@@ -19,12 +20,13 @@ def receive_file(client_socket, filename,save_directory):
             client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
         else:
             print("Error")
-    except Exception as e:
-        print(f"Error receiving file {e}")
+    except:
+        client_socket.send("Error: File not found.".encode())
 
 def fetchFile(client_socket, filename):
     if (os.path.exists('Server Directory/' + filename )):
-        client_socket.send("True".encode())
+        client_socket.send("Sending File to Client".encode())
+        client_socket.send(filename.encode())
         with open('Server Directory/' + filename, 'rb') as f: 
             data = f.read()
             print(data)                              
@@ -100,7 +102,6 @@ def handle_client(client_socket, addr):
                 _, filename = command.split()
                 save_directory = "Server Directory"
                 receive_file(client_socket, filename, save_directory)
-                
             elif command.startswith('/get'):
                 _, filename = command.split()
                 fetchFile(client_socket, filename)

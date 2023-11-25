@@ -12,25 +12,17 @@ def getCommandText(textboxCommand, outputString):
     # function to see which command would be used
     useCommand(command, outputString)
 
-def receiveFileFromServer(command, outputString):
+def receiveFileFromServer(filename, data, outputString):
 
     global curr_user
     global s
-       
-    response = s.recv(4096)
-    print(response.decode())
-    if response.decode() == "True":
-        data = s.recv(819200)
-        _, filename = command.split()
-        full_path = os.path.join(curr_user, filename)
-        f = open(full_path, "wb")
-        f.write(data)
-        f.close()
-        print("File received from Server: " + filename)
-        outputString.set("File received from Server: " + filename)
-    else:
-        outputString.set(response.decode())
-        
+
+    full_path = os.path.join(curr_user, filename)
+    f = open(full_path, "wb")
+    f.write(data)
+    f.close()
+    print("File received from Server: " + filename)
+    outputString.set("File received from Server: " + filename)
 
 def useCommand(command, outputString):
     global curr_user
@@ -44,6 +36,7 @@ def useCommand(command, outputString):
             joinServer(server_ip, server_port, outputString)
         except:
             outputString.set("Error: Command parameters do not match or is not allowed.")
+    
     elif command.startswith('/register'):
         try:
             sendToServer(command, outputString)
@@ -75,14 +68,11 @@ def useCommand(command, outputString):
             print("Error: Command parameters do not match or is not allowed.")
             outputString.set("Error: Command parameters do not match or is not allowed.")
 
-        if(os.path.exists(curr_user + '/' + filename )):            # checks if the file is in the dir
-            sendToServer(command, outputString)                                   # sends the command to the server process
-            with open(curr_user + '/' + filename, 'rb') as f:       # reads the content of the file if it exists
-                data = f.read()                                     # assign the content of the file to 'data'
-                s.sendall(data)                                     # send 
-            response = s.recv(4096)
-            print(f"{curr_user}{response.decode()}")
-            outputString.set(f"{curr_user}{response.decode()}")
+        if(os.path.exists(curr_user + '/' + filename )):           
+            sendToServer(command, outputString)                  
+            with open(curr_user + '/' + filename, 'rb') as f:       
+                data = f.read()                                     
+                s.sendall(data)                                     
         else:
             outputString.set("Error: File not found.")
 
@@ -100,16 +90,39 @@ def sendToServer(command, outputString):
     global curr_user
 
     s.send(command.encode())
-    if command.startswith('/get'):
-        receiveFileFromServer(command, outputString)
-    else:
-        response = s.recv(4096)
-        print(response.decode())
-        outputString.set(response.decode())
 
-        if response.decode().startswith('Welcome'):
-            curr_user = command.split()[1]
-            
+def receive(outputString):
+    global curr_user
+    global exit_flag
+    global s
+
+    while not exit_flag.is_set():
+        try:
+            output = s.recv(4096)
+
+            if output.decode().startswith('Welcome'):
+                outputString.set(output.decode())
+                curr_user = output.decode().split()[1]
+            elif output.decode().startswith('Sending File to Client'):
+                filename = s.recv(4096).decode()
+                data = s.recv(819200)
+                receiveFileFromServer(filename, data, outputString)
+            elif output.decode().startswith('Storing File to Server'):
+                response = s.recv(4096)
+                print(f"{curr_user}{response.decode()}")
+                outputString.set(f"{curr_user}{response.decode()}")
+            else:
+                # others
+                print(output.decode())
+                outputString.set(output.decode())
+        except:
+            print("Error")
+            outputString.set("Error")  
+            break
+
+def startThreading(outputString):
+    receive_thread = threading.Thread(target=receive, args=(outputString,))
+    receive_thread.start()
 
 def joinServer(server_ip, server_port, outputString):
     global s
@@ -119,7 +132,7 @@ def joinServer(server_ip, server_port, outputString):
         s.connect((server_ip, server_port));
         outputString.set("Connection to the File Exchange Server is successful!")
         print("Connection to the File Exchange Server is successful!")
-
+        startThreading(outputString)
     except:
         outputString.set("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
         print("Error: Connection to the Server has failed! Please check IP Address and Port Number.") 
@@ -127,7 +140,9 @@ def joinServer(server_ip, server_port, outputString):
 def main():
     global s
     global curr_user
+    global exit_flag
 
+    exit_flag = threading.Event()
     curr_user = None
 
     ROOT = tk.Tk()
@@ -156,11 +171,7 @@ def main():
                            wraplength=450,
                            justify="center")
     labelOutput.pack(padx=10)
-
-    # # Displays the error
-    # labelERROR = tk.Label(ROOT, text="Error:", font=('Helvetica', 14))
-    # labelERROR.pack()
-
+    
     ROOT.mainloop()
 
 if __name__ == "__main__":
