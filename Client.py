@@ -48,6 +48,8 @@ def useCommand(command, outputString):
         try:
             sendToServer(command, outputString)
             s.close()
+            print("Connection closed. Thank you!")
+            outputString.set("Connection closed. Thank you!")
         
         except Exception as e:
             print('Error: Disconnection failed. Please connect to the server first')
@@ -76,8 +78,8 @@ def useCommand(command, outputString):
         else:
             outputString.set("Error: File not found.")
 
-        broadcast_message = f"User {curr_user} stored file: {filename}"
-        s.send(broadcast_message.encode())
+        # broadcast_message = f"User {curr_user} stored file: {filename}"
+        # s.send(broadcast_message.encode())
         
     elif command.startswith('/get') and curr_user:
         sendToServer(command, outputString)        
@@ -116,8 +118,8 @@ def receive(outputString):
                 print(output.decode())
                 outputString.set(output.decode())
         except:
-            print("Error")
-            outputString.set("Error")  
+            print("Error in Threading")
+            outputString.set("Error in Threading")  
             break
 
 def startThreading(outputString):
