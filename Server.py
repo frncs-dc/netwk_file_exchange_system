@@ -16,23 +16,23 @@ def receive_file(client_socket, filename,save_directory):
             f.write(data)
             f.close()
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+            client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
         else:
             print("Error")
     except Exception as e:
         print(f"Error receiving file {e}")
 
 def fetchFile(client_socket, filename):
-    try:
-        if (os.path.exists('Server Directory/' + filename )):
-            with open('Server Directory/' + filename, 'rb') as f: 
-                data = f.read()
-                print(data)                              
-                client_socket.sendall(data)
-        else:
-            client_socket.send("File does not exist.")
-    except Exception as e:
-        print(e)
+    if (os.path.exists('Server Directory/' + filename )):
+        client_socket.send("True".encode())
+        with open('Server Directory/' + filename, 'rb') as f: 
+            data = f.read()
+            print(data)                              
+            client_socket.sendall(data)
+    else:
+        client_socket.send("Error: File not found in the server.")
+        
+
 
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -99,7 +99,6 @@ def handle_client(client_socket, addr):
             elif command.startswith('/store'):
                 _, filename = command.split()
                 save_directory = "Server Directory"
-                client_socket.send("Receiving file...".encode())
                 receive_file(client_socket, filename, save_directory)
                 
             elif command.startswith('/get'):
