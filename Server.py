@@ -4,7 +4,9 @@ import os
 from datetime import datetime
 import ipaddress
 
-clients = {}  # Dictionary to store client handlers
+clients = []  # Dictionary to store client handlers
+nicknames = []
+
 lock = threading.Lock()
 def receive_file(client_socket, filename,save_directory):
     try:
@@ -17,7 +19,14 @@ def receive_file(client_socket, filename,save_directory):
             f.write(data)
             f.close()
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            client_socket.send(f"{timestamp}: File {filename} stored successfully.".encode())
+            broadcast_message = f"{timestamp}: File {filename} stored successfully."
+            # client_socket.send(broadcast_message.encode())
+            for client in clients:
+                try:
+                    print(broadcast_message)
+                    client.send(broadcast_message.encode())
+                except Exception as e:
+                    print(f"Error broadcasting to {client}: {e}")
         else:
             print("Error")
     except:
@@ -73,13 +82,7 @@ def getCommandList():
 
     return cmd_list
 
-def broadcast(message):
-    with lock:
-        for handler, client_socket in clients.items():
-            try:
-                client_socket.send(message.encode())
-            except Exception as e:
-                print(f"Error broadcasting to {handler}: {e}")              
+            
 
 
 def handle_client(client_socket, addr):
@@ -96,12 +99,22 @@ def handle_client(client_socket, addr):
                     client_socket.send("Error: Registration failed. Handle or alias already exists.".encode())
                 else:
                     os.mkdir(curr_user)
-                    client_socket.send(f"Welcome {curr_user}".encode())
+                    # client_socket.send(f"Welcome {curr_user}".encode())
+                    welcome_message = f"Welcome {curr_user}"
+                    clients.append(client_socket)
+                    nicknames.append(curr_user)
+                    for client in clients:
+                        try:
+                            print(welcome_message)
+                            client.send(welcome_message.encode())
+                        except Exception as e:
+                            print(f"Error broadcasting to {client}: {e}")
 
             elif command.startswith('/store'):
                 _, filename = command.split()
                 save_directory = "Server Directory"
                 receive_file(client_socket, filename, save_directory)
+
             elif command.startswith('/get'):
                 _, filename = command.split()
                 fetchFile(client_socket, filename)
@@ -121,15 +134,28 @@ def handle_client(client_socket, addr):
                 client_socket.send(convertToString(getCommandList()).encode())
 
             elif command == '/leave':
-                client_socket.send("Connection closed. Thank you!".encode())
+                curr_user = command.split()[1]
+
+                for client in clients:
+                    if client_socket != client:
+                        try:
+                            goodbye = f"{curr_user} left the server"
+                            print(goodbye)
+                            client.send(goodbye.encode())
+                        except Exception as e:
+                            print(f"Error broadcasting to {client}: {e}")
+                    else:
+                        client_socket.send("Connection closed. Thank you!".encode())
+                        
                 client_socket.close()
-                if handler:
-                    del clients[handler]
+
+                clients.remove(client_socket)
+
                 print(f"Client {addr} disconnected.")
                 break
 
             else:
-                client_socket.send("Error: Invalid command or handler not registered.".encode())
+                client_socket.send("Error: Command not found.".encode())
 
     except Exception as e:
         client_socket.send(f"Error: {e}".encode())

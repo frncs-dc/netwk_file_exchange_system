@@ -46,10 +46,7 @@ def useCommand(command, outputString):
     
     elif command == '/leave':
         try:
-            sendToServer(command)
-            s.close()
-            print("Connection closed. Thank you!")
-            outputString.set("Connection closed. Thank you!")
+            sendToServer(command + f" {curr_user}")
         
         except Exception as e:
             print('Error: Disconnection failed. Please connect to the server first')
@@ -113,6 +110,9 @@ def receive(outputString):
                 response = s.recv(4096)
                 print(f"{curr_user}{response.decode()}")
                 outputString.set(f"{curr_user}{response.decode()}")
+            elif output.decode().startswith('Connection closed'):
+                s.close()
+                exit_flag.set()
             else:
                 # others
                 print(output.decode())
@@ -173,10 +173,11 @@ def main():
                            wraplength=450,
                            justify="center")
     labelOutput.pack(padx=10)
-
-    exit_flag.set()
     
+
     ROOT.mainloop()
+    
+
 
 if __name__ == "__main__":
     main()
