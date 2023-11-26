@@ -1,1 +1,1 @@
-/store Alice.txt sdsdsd
+hello alice!
