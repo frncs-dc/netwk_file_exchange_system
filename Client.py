@@ -12,17 +12,27 @@ def getCommandText(textboxCommand, outputString):
     # function to see which command would be used
     useCommand(command, outputString)
 
-def receiveFileFromServer(filename, data, outputString):
+def receiveFileFromServer(user_directory, filename, data, outputString):
 
     global curr_user
     global s
 
-    full_path = os.path.join(curr_user, filename)
+    full_path = os.path.join(user_directory, filename)
     f = open(full_path, "wb")
     f.write(data)
     f.close()
     print("File received from Server: " + filename)
     outputString.set("File received from Server: " + filename)
+
+def storeFileToServer(client_directory, filename, outputString):
+
+    with open(client_directory + '/' + filename, 'rb') as f:       
+        data = f.read()                                     
+        s.sendall(data)                          
+
+    response = s.recv(4096)
+    print(f"{client_directory}{response.decode()}")
+    outputString.set(f"{client_directory}{response.decode()}")
 
 def useCommand(command, outputString):
     global curr_user
@@ -46,42 +56,23 @@ def useCommand(command, outputString):
     
     elif command == '/leave':
         try:
-            sendToServer(command + f" {curr_user}")
-        
+            sendToServer(command)
         except Exception as e:
             print('Error: Disconnection failed. Please connect to the server first')
-
-    elif not curr_user:
-        outputString.set("Error: Command parameters do not match or is not allowed.")
     
-    elif command == '/dir' and curr_user:
+    elif command == '/dir':
         sendToServer(command)
 
-    elif command == '/?' and curr_user:
+    elif command == '/?':
         sendToServer(command)
 
-    elif command.startswith('/store') and curr_user:
-        try:
-            _, filename = command.split()
-        except:
-            print("Error: Command parameters do not match or is not allowed.")
-            outputString.set("Error: Command parameters do not match or is not allowed.")
-
-        if(os.path.exists(curr_user + '/' + filename )):           
-            sendToServer(command)                  
-            with open(curr_user + '/' + filename, 'rb') as f:       
-                data = f.read()                                     
-                s.sendall(data)                                     
-        else:
-            outputString.set("Error: File not found.")
-
-        # broadcast_message = f"User {curr_user} stored file: {filename}"
-        # s.send(broadcast_message.encode())
+    elif command.startswith('/store'):
+        sendToServer(command)                  
         
-    elif command.startswith('/get') and curr_user:
+    elif command.startswith('/get'):
         sendToServer(command)        
     
-    else:
+    else: 
         outputString.set("Error: Command not found.")
 
 def sendToServer(command):
@@ -103,19 +94,32 @@ def receive(outputString):
                 outputString.set(output.decode())
                 curr_user = output.decode().split()[1]
             elif output.decode().startswith('Sending File to Client'):
+                user_directory = s.recv(4096).decode()
                 filename = s.recv(4096).decode()
                 data = s.recv(819200)
-                receiveFileFromServer(filename, data, outputString)
+                receiveFileFromServer(user_directory, filename, data, outputString)
             elif output.decode().startswith('Storing File to Server'):
-                response = s.recv(4096)
-                print(f"{curr_user}{response.decode()}")
-                outputString.set(f"{curr_user}{response.decode()}")
+                ifFileExists = s.recv(4096).decode()
+                if not ifFileExists.startswith("Error"):
+                    client_directory = s.recv(4096).decode()
+                    filename = s.recv(4096).decode()
+                    storeFileToServer(client_directory, filename, outputString)
             elif output.decode().startswith('Connection closed'):
                 s.close()
+<<<<<<< Updated upstream
                 exit_flag.set()
         except:
             print("Error in Threading")
             outputString.set("Error in Threading")  
+=======
+            else:
+                # others
+                print(output.decode())
+                outputString.set(output.decode())
+        except Exception as e:
+            print(f"Error in Threading {e}")
+            outputString.set(f"Error in Threading {e}")  
+>>>>>>> Stashed changes
             break
 
 def startThreading(outputString):

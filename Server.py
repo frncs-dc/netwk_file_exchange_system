@@ -9,39 +9,56 @@ nicknames = []
       # Dictionary to store client handlers
 lock = threading.Lock()
 def receive_file(client_socket, filename,save_directory):
-    try:
-        full_path = os.path.join(save_directory, filename)
-        f = open(full_path, "wb")
-        print(full_path)
-        if f:
-            client_socket.send("Storing File to Server".encode())
-            data = client_socket.recv(819200)
-            f.write(data)
-            f.close()
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            broadcast_message = f"{timestamp}: File {filename} stored successfully."
-            # client_socket.send(broadcast_message.encode())
-            for client in clients:
-                try:
-                    print(broadcast_message)
-                    client.send(broadcast_message.encode())
-                except Exception as e:
-                    print(f"Error broadcasting to {client}: {e}")
+
+    client_directory = getUserName(client_socket)
+
+    if client_directory:
+        client_socket.send("Storing File to Server".encode())
+        path = os.path.join(client_directory, filename)
+        if(os.path.exists(path)):
+            client_socket.send("File exists!".encode())
+            client_socket.send(client_directory.encode())
+            client_socket.send(filename.encode())
+
+            full_path = os.path.join(save_directory, filename)
+            f = open(full_path, "wb")
+            print(full_path)
+            if f:
+                data = client_socket.recv(819200)
+                f.write(data)
+                f.close()
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                broadcast_message = f"{timestamp}: File {filename} stored successfully."
+                # client_socket.send(broadcast_message.encode())
+                for client in clients:
+                    try:
+                        print(broadcast_message)
+                        client.send(broadcast_message.encode())
+                    except Exception as e:
+                        print(f"Error broadcasting to {client}: {e}")
+            else:
+                print("Error")
         else:
-            print("Error")
-    except:
-        client_socket.send("Error: File not found.".encode())
+            client_socket.send("Error: File not found.")
+    else:
+        client_socket.send("Error: User not registered!")
 
 def fetchFile(client_socket, filename):
-    if (os.path.exists('Server Directory/' + filename )):
-        client_socket.send("Sending File to Client".encode())
-        client_socket.send(filename.encode())
-        with open('Server Directory/' + filename, 'rb') as f: 
-            data = f.read()
-            print(data)                              
-            client_socket.sendall(data)
+    if getUserName(client_socket):
+        if (os.path.exists('Server Directory/' + filename )):
+            client_socket.send("Sending File to Client".encode())
+            user_directory = getUserName(client_socket)
+            client_socket.send(user_directory.encode())
+            client_socket.send(filename.encode())
+            with open('Server Directory/' + filename, 'rb') as f: 
+                data = f.read()
+                print(data)                              
+                client_socket.sendall(data)
+        else:
+            client_socket.send("Error: File not found in the server.")
     else:
-        client_socket.send("Error: File not found in the server.")
+        client_socket.send("Error: User not registered!")
+        
         
 
 
@@ -82,8 +99,18 @@ def getCommandList():
 
     return cmd_list
 
+<<<<<<< Updated upstream
 
+=======
+def getUserName(client_socket):
+>>>>>>> Stashed changes
 
+    index = clients.index(client_socket)
+    # print(str(index) + ":" + client_socket)
+
+    username = nicknames[index]
+    print(username)
+    return username
 
 def handle_client(client_socket, addr):
     handler = None
@@ -111,9 +138,12 @@ def handle_client(client_socket, addr):
                             print(f"Error broadcasting to {client}: {e}")
 
             elif command.startswith('/store'):
-                _, filename = command.split()
-                save_directory = "Server Directory"
-                receive_file(client_socket, filename, save_directory)
+                try:
+                    _, filename = command.split()
+                    save_directory = "Server Directory"
+                    receive_file(client_socket, filename, save_directory)
+                except:
+                    client_socket.send("Error: Command parameters do not match or is not allowed.")
 
             elif command.startswith('/get'):
                 _, filename = command.split()
@@ -135,7 +165,11 @@ def handle_client(client_socket, addr):
 
 
             elif command == '/leave':
+<<<<<<< Updated upstream
                 curr_user = command.split()[1]
+=======
+                curr_user = getUserName(client_socket)
+>>>>>>> Stashed changes
                 for client in clients:
                     if client_socket != client:
                         try:
@@ -146,8 +180,16 @@ def handle_client(client_socket, addr):
                             print(f"Error broadcasting to {client}: {e}")
                     else:
                         client_socket.send("Connection closed. Thank you!".encode())
+<<<<<<< Updated upstream
                         
 
+=======
+                client_socket.close()
+
+                nicknames.remove(curr_user)
+                clients.remove(client_socket)
+                
+>>>>>>> Stashed changes
 
 
                     clients.remove(client_socket)
