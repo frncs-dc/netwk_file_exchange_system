@@ -106,12 +106,6 @@ def receive(outputString):
                     storeFileToServer(client_directory, filename, outputString)
             elif output.decode().startswith('Connection closed'):
                 s.close()
-<<<<<<< Updated upstream
-                exit_flag.set()
-        except:
-            print("Error in Threading")
-            outputString.set("Error in Threading")  
-=======
             else:
                 # others
                 print(output.decode())
@@ -119,7 +113,6 @@ def receive(outputString):
         except Exception as e:
             print(f"Error in Threading {e}")
             outputString.set(f"Error in Threading {e}")  
->>>>>>> Stashed changes
             break
 
 def startThreading(outputString):

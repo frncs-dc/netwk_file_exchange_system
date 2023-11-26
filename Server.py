@@ -99,11 +99,7 @@ def getCommandList():
 
     return cmd_list
 
-<<<<<<< Updated upstream
-
-=======
 def getUserName(client_socket):
->>>>>>> Stashed changes
 
     index = clients.index(client_socket)
     # print(str(index) + ":" + client_socket)
@@ -165,11 +161,7 @@ def handle_client(client_socket, addr):
 
 
             elif command == '/leave':
-<<<<<<< Updated upstream
-                curr_user = command.split()[1]
-=======
                 curr_user = getUserName(client_socket)
->>>>>>> Stashed changes
                 for client in clients:
                     if client_socket != client:
                         try:
@@ -180,19 +172,10 @@ def handle_client(client_socket, addr):
                             print(f"Error broadcasting to {client}: {e}")
                     else:
                         client_socket.send("Connection closed. Thank you!".encode())
-<<<<<<< Updated upstream
-                        
-
-=======
                 client_socket.close()
 
                 nicknames.remove(curr_user)
                 clients.remove(client_socket)
-                
->>>>>>> Stashed changes
-
-
-                    clients.remove(client_socket)
 
             else:
                  client_socket.send("Error: Command not found.".encode())
