@@ -3,37 +3,20 @@ import tkinter as tk
 import os
 from datetime import datetime
 import threading
+import time
 
-
-def getCommandText(textboxCommand, outputString):
-    # gets the command from the text inputted
-    command = textboxCommand.get(1.0,'end-1c')
-
-    # function to see which command would be used
-    useCommand(command, outputString)
-
-def receiveFileFromServer(user_directory, filename, data, outputString):
-
-    global curr_user
+def joinServer(server_ip, server_port, outputString):
     global s
-
-    full_path = os.path.join(user_directory, filename)
-    f = open(full_path, "wb")
-    f.write(data)
-    f.close()
-    print("File received from Server: " + filename)
-    outputString.set("File received from Server: " + filename)
-
-def storeFileToServer(client_directory, filename, outputString):
-    path = os.path.join(client_directory, filename)
-    with open(path, 'rb') as f:       
-        data = f.read()
-        print(data)                                     
-        s.sendall(data)                          
-
-    response = s.recv(4096)
-    print(f"{client_directory}{response.decode()}")
-    outputString.set(f"{client_directory}{response.decode()}")
+    global curr_user
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.connect((server_ip, server_port));
+        outputString.set("Connection to the File Exchange Server is successful!")
+        print("Connection to the File Exchange Server is successful!")
+        startThreading(outputString)
+    except:
+        outputString.set("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
+        print("Error: Connection to the Server has failed! Please check IP Address and Port Number.") 
 
 def getCommandList():
     cmd_list = [
@@ -48,14 +31,49 @@ def getCommandList():
 
     return cmd_list
 
-def convertToString(list):
+def convertToString(files):
 
     dir_list = ''
 
-    for x in list:
+    for x in files:
         dir_list += x + '\n'
     
     return dir_list
+
+def getCommandText(textboxCommand, outputString):
+    # gets the command from the text inputted
+    command = textboxCommand.get(1.0,'end-1c')
+
+    # function to see which command would be used
+    useCommand(command, outputString)
+
+def receiveFileFromServer(user_directory, filename, data, outputString):
+
+    try:
+        full_path = os.path.join(user_directory, filename)
+        f = open(full_path, "wb")
+        f.write(data)
+        f.close()
+        print("File received from Server: " + filename)
+        outputString.set("File received from Server: " + filename)
+    except Exception as e:
+        print(f"Error: {e}")
+    
+def storeFileToServer(client_directory, filename, outputString):
+
+    global s
+    
+    try:
+        print("User:" + client_directory)
+        print("Filename:" + filename)
+        full_path = os.path.join(client_directory, filename)
+        f = open(full_path, 'rb')       
+        data = f.read()
+        f.close()
+        time.sleep(0.5)                                     
+        s.sendall(data)                          
+    except Exception as e:
+        print(f"Error: {e}")
 
 def useCommand(command, outputString):
     global curr_user
@@ -69,41 +87,48 @@ def useCommand(command, outputString):
             joinServer(server_ip, server_port, outputString)
         except:
             outputString.set("Error: Command parameters do not match or is not allowed.")
-
-    elif command == '/?':
-        commands = convertToString(getCommandList())
-        outputString.set(commands)
     
-    else:
+    elif command == '/?':
+        outputString.set(convertToString(getCommandList()))
+
+    elif command.startswith('/register'):
         try:
-            if command.startswith('/register'):
-                try:
-                    sendToServer(command)
-                except:
-                    print("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
-                    outputString.set("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
-
-            elif command == '/leave':
-                try:
-                    sendToServer(command)
-                except Exception as e:
-                    print('Error: Disconnection failed. Please connect to the server first')
-                    outputString.set('Error: Disconnection failed. Please connect to the server first')
-            
-            elif command == '/dir':
-                sendToServer(command)
-
-            elif command.startswith('/store'):
-                sendToServer(command)                  
-                
-            elif command.startswith('/get'):
-                sendToServer(command)        
-            
-            else: 
-                outputString.set("Error: Command not found.")
+            sendToServer(command)
         except:
-            print("Error: Connect to the server first!")
-            outputString.set("Error: Connect to the server first!")
+            print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+    
+    elif command == '/leave':
+        try:
+            sendToServer(command)
+        except Exception as e:
+            print('Error: Disconnection failed. Please connect to the server first')
+            outputString.set('Error: Disconnection failed. Please connect to the server first')
+    
+    elif command == '/dir':
+        try:
+            sendToServer(command)
+        except Exception as e:
+            print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+
+    elif command.startswith('/store'):
+        try:
+            sendToServer(command)              
+        except:
+            print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+          
+    elif command.startswith('/get'):
+        try:
+            sendToServer(command)
+        except:
+            print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            
+    
+    else: 
+        outputString.set("Error: Command not found.")
 
 def sendToServer(command):
     global s
@@ -118,35 +143,38 @@ def receive(outputString):
 
     while not exit_flag.is_set():
         try:
-            output = s.recv(4096)
+            time.sleep(0.02)
+            output = s.recv(4096).decode()  
 
-            if output.decode().startswith('Welcome'):
-                outputString.set(output.decode())
-                curr_user = output.decode().split()[1]
-                
-            elif output.decode().startswith('Sending File to Client'):
+            if output.startswith('Welcome'):
+                outputString.set(output)
+                curr_user = output.split()[1]
+            elif output.startswith('Sending File to Client'):
                 user_directory = s.recv(4096).decode()
                 filename = s.recv(4096).decode()
                 data = s.recv(819200)
                 receiveFileFromServer(user_directory, filename, data, outputString)
 
-            elif output.decode().startswith('Storing File to Server'):
-                ifFileExists = s.recv(4096).decode()
-                if not ifFileExists.startswith("Error"):
-                    client_directory = s.recv(4096).decode()
-                    filename = s.recv(4096).decode()
+            elif output.startswith('Storing File to Server'):
+                time.sleep(0.02)
+                response = s.recv(1024).decode()
+                if not response.startswith("Error"):
+                    time.sleep(0.02)
+                    print("Response: " + response)
+                    client_directory, filename = response.split()
                     storeFileToServer(client_directory, filename, outputString)
                 else:
-                    outputString.set(ifFileExists)
-
-            elif output.decode().startswith('Connection closed'):
+                    print(response)
+                    outputString.set(response)
+            elif output.startswith('Connection closed'):
+                s.send("Goodbye!".encode())
                 s.close()
-                exit_flag.set()
                 outputString.set("Connection closed. Thank you!")
+                break
             else:
                 # others
-                print(output.decode())
-                outputString.set(output.decode())
+                print(output)
+                outputString.set(output)
         except Exception as e:
             print(f"Error in Threading {e}")
             outputString.set(f"Error in Threading {e}")  
@@ -156,18 +184,7 @@ def startThreading(outputString):
     receive_thread = threading.Thread(target=receive, args=(outputString,))
     receive_thread.start()
 
-def joinServer(server_ip, server_port, outputString):
-    global s
-    global curr_user
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((server_ip, server_port));
-        outputString.set("Connection to the File Exchange Server is successful!")
-        print("Connection to the File Exchange Server is successful!")
-        startThreading(outputString)
-    except:
-        outputString.set("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
-        print("Error: Connection to the Server has failed! Please check IP Address and Port Number.") 
+
 
 def main():
     global s

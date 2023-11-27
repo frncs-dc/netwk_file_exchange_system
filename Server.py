@@ -3,11 +3,12 @@ import threading
 import os
 from datetime import datetime
 import ipaddress
+import time
 
 clients = []  # Dictionary to store client handlers
 nicknames = []
       # Dictionary to store client handlers
-lock = threading.Lock()
+
 def receive_file(client_socket, filename, save_directory):
 
     client_directory = getUserName(client_socket)
@@ -16,16 +17,17 @@ def receive_file(client_socket, filename, save_directory):
         client_socket.send("Storing File to Server".encode())
         path = os.path.join(client_directory, filename)
         if(os.path.exists(path)):
-            client_socket.send("File exists!".encode())
-            client_socket.send(client_directory.encode())
-            client_socket.send(filename.encode())
+            time.sleep(0.01)
+            file_path = client_directory + " " + filename
+            client_socket.send(file_path.encode())
+
+            file_size = os.path.getsize(path) + 1
+            data = client_socket.recv(file_size)
 
             full_path = os.path.join(save_directory, filename)
             f = open(full_path, "wb")
             print(full_path)
             if f:
-                data = client_socket.recv(819200)
-                print(data)
                 f.write(data)
                 f.close()
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -34,9 +36,10 @@ def receive_file(client_socket, filename, save_directory):
                 for client in clients:
                     try:
                         print(broadcast_message)
+                        time.sleep(0.05)
                         client.send(broadcast_message.encode())
                     except Exception as e:
-                        print(f"Error broadcasting to {client}: {e}")
+                        print(f"Error broadcasting to {client}: {e}.")
             else:
                 print("Error")
         else:
@@ -49,17 +52,20 @@ def fetchFile(client_socket, filename):
         if (os.path.exists('Server Directory/' + filename )):
             client_socket.send("Sending File to Client".encode())
             user_directory = getUserName(client_socket)
+            time.sleep(0.01)
             client_socket.send(user_directory.encode())
+            time.sleep(0.01)
             client_socket.send(filename.encode())
             with open('Server Directory/' + filename, 'rb') as f: 
                 data = f.read()
-                print(data)                              
+                print(data)
+                time.sleep(0.05)                              
                 client_socket.sendall(data)
         else:
             client_socket.send("Error: File not found in the server.".encode())
     else:
         client_socket.send("Error: User not registered!".encode())
-                        
+        
         
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -85,24 +91,11 @@ def convertToString(files):
     
     return dir_list
 
-def getCommandList():
-    cmd_list = [
-                "/? - Request command help to output all Input Syntax commands for references",
-                "/join <server_ip_add> <port> - Connect to the server application",
-                "/leave - Disconnect to the server application",
-                "/register <handle> - Register a unique handle or alias",
-                "/store <filename> - Send file to server",
-                "/dir - Request directory file list from a server",
-                "/get <filename> - Fetch a file from a server" 
-    ]
-
-    return cmd_list
-
 def getUserName(client_socket):
     try:
         index = clients.index(client_socket)
         username = nicknames[index]
-    
+
         return username
     except:
         return False
@@ -116,21 +109,27 @@ def handle_client(client_socket, addr):
                 break  
             
             elif command.startswith('/register'):
-                curr_user = command.split()[1]
-                if os.path.exists(curr_user):
-                    client_socket.send("Error: Registration failed. Handle or alias already exists.".encode())
-                else:
-                    os.mkdir(curr_user)
-                      # client_socket.send(f"Welcome {curr_user}".encode())
-                    welcome_message = f"Welcome {curr_user}"
-                    clients.append(client_socket)
-                    nicknames.append(curr_user)
-                    for client in clients:
-                        try:
-                            print(welcome_message)
-                            client.send(welcome_message.encode())
-                        except Exception as e:
-                            print(f"Error broadcasting to {client}: {e}")
+                curr_user = None
+                try:
+                    curr_user = command.split()[1]
+                except:
+                    client_socket.send("Error: Command parameters do not match or is not allowed.".encode())
+                
+                if(curr_user):
+                    if os.path.exists(curr_user):
+                        client_socket.send("Error: Registration failed. Handle or alias already exists.".encode())
+                    else:
+                        os.mkdir(curr_user)
+                        # client_socket.send(f"Welcome {curr_user}".encode())
+                        welcome_message = f"Welcome {curr_user}"
+                        clients.append(client_socket)
+                        nicknames.append(curr_user)
+                        for client in clients:
+                            try:
+                                print(welcome_message)
+                                client.send(welcome_message.encode())
+                            except Exception as e:
+                                print(f"Error broadcasting to {client}: {e}")
 
             elif command.startswith('/store'):
                 if getUserName(client_socket):
@@ -141,18 +140,16 @@ def handle_client(client_socket, addr):
                     except:
                         client_socket.send("Error: Command parameters do not match or is not allowed.".encode())
                 else:
-                    client_socket.send("Error: Register User First!".encode())
-    
+                    client_socket.send("User not registered".encode())
+
             elif command.startswith('/get'):
                 if getUserName(client_socket):
-                    try:
-                        _, filename = command.split()
-                        fetchFile(client_socket, filename)
-                    except:
-                        client_socket.send("Error: Command parameters do not match or is not allowed.".encode()) 
+                    _, filename = command.split()
+                    fetchFile(client_socket, filename)
+                
                 else:
-                    client_socket.send("Error: Register User First!".encode())
-
+                    client_socket.send("User not registered".encode())
+        
             elif command == '/dir':
                 if getUserName(client_socket):
                     directory = "Server Directory"
@@ -165,8 +162,8 @@ def handle_client(client_socket, addr):
                         os.mkdir(directory) 
                         print("Directory '%s' created" %directory)
                 else:
-                    client_socket.send("Error: Register User First!".encode())
-
+                    client_socket.send("User not registered".encode())
+            
             elif command == '/leave':
                 if getUserName(client_socket):
                     curr_user = getUserName(client_socket)
@@ -183,17 +180,21 @@ def handle_client(client_socket, addr):
 
                     nicknames.remove(curr_user)
                     clients.remove(client_socket)
-
+                    
                     client_socket.close()
-
+                    break
                 else:
                     client_socket.send("Connection closed. Thank you!".encode())
+                    if client_socket.recv(4096).decode() == "Goodbye!":
+                        client_socket.close()
+                        break
 
             else:
-                client_socket.send("Error: Command not found.".encode())
+                 client_socket.send("Error: Command not found.".encode())
 
     except Exception as e:
-        client_socket.send(f"Error: {e}".encode())
+        # client_socket.send(f"Error: {e}".encode())
+        print(f"Error: {e}")
 
         
 if __name__ == "__main__":
