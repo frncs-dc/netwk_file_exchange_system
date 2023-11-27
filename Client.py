@@ -5,7 +5,7 @@ from datetime import datetime
 import threading
 import time
 
-def joinServer(server_ip, server_port, outputString):
+def joinServer(server_ip, server_port, outputString, serverStatus):
     global s
     global curr_user
     try:
@@ -13,7 +13,7 @@ def joinServer(server_ip, server_port, outputString):
         s.connect((server_ip, server_port));
         outputString.set("Connection to the File Exchange Server is successful!")
         print("Connection to the File Exchange Server is successful!")
-        startThreading(outputString)
+        startThreading(outputString, serverStatus)
     except:
         outputString.set("Error: Connection to the Server has failed! Please check IP Address and Port Number.")
         print("Error: Connection to the Server has failed! Please check IP Address and Port Number.") 
@@ -26,7 +26,9 @@ def getCommandList():
                 "/register <handle> - Register a unique handle or alias",
                 "/store <filename> - Send file to server",
                 "/dir - Request directory file list from a server",
-                "/get <filename> - Fetch a file from a server" 
+                "/get <filename> - Fetch a file from a server",
+                "/sendToAll <message> - send a message to all registered and connected users",
+                "/send <user> <message> - send a message to one specific user" 
     ]
 
     return cmd_list
@@ -40,12 +42,12 @@ def convertToString(files):
     
     return dir_list
 
-def getCommandText(textboxCommand, outputString):
+def getCommandText(textboxCommand, outputString, serverStatus):
     # gets the command from the text inputted
     command = textboxCommand.get(1.0,'end-1c')
 
     # function to see which command would be used
-    useCommand(command, outputString)
+    useCommand(command, outputString, serverStatus)
 
 def receiveFileFromServer(user_directory, filename, data, outputString):
 
@@ -75,7 +77,7 @@ def storeFileToServer(client_directory, filename, outputString):
     except Exception as e:
         print(f"Error: {e}")
 
-def useCommand(command, outputString):
+def useCommand(command, outputString, serverStatus):
     global curr_user
     global s
 
@@ -84,7 +86,7 @@ def useCommand(command, outputString):
             details = command.split()
             server_ip = details[1]
             server_port = int(details[2])
-            joinServer(server_ip, server_port, outputString)
+            joinServer(server_ip, server_port, outputString, serverStatus)
         except:
             outputString.set("Error: Command parameters do not match or is not allowed.")
     
@@ -126,7 +128,20 @@ def useCommand(command, outputString):
             print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
             outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
             
+    elif command.startswith('/sendToAll'):
+        try:
+            sendToServer(command)
+        except:
+            print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
     
+    elif command.startswith('/send'):
+        try:
+            sendToServer(command)
+        except:
+            print("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            outputString.set("Message upon unsuccessful connection to the server due to the server not running or incorrect IP and Port combination")
+            
     else: 
         outputString.set("Error: Command not found.")
 
@@ -136,7 +151,7 @@ def sendToServer(command):
 
     s.send(command.encode())
 
-def receive(outputString):
+def receive(outputString, serverStatus):
     global curr_user
     global exit_flag
     global s
@@ -147,7 +162,7 @@ def receive(outputString):
             output = s.recv(4096).decode()  
 
             if output.startswith('Welcome'):
-                outputString.set(output)
+                serverStatus.set(output)
                 curr_user = output.split()[1]
             elif output.startswith('Sending File to Client'):
                 user_directory = s.recv(4096).decode()
@@ -169,7 +184,8 @@ def receive(outputString):
             elif output.startswith('Connection closed'):
                 s.send("Goodbye!".encode())
                 s.close()
-                outputString.set("Connection closed. Thank you!")
+                serverStatus.set("Connection closed. Thank you!")
+                outputString.set("")
                 break
             else:
                 # others
@@ -180,8 +196,8 @@ def receive(outputString):
             outputString.set(f"Error in Threading {e}")  
             break
 
-def startThreading(outputString):
-    receive_thread = threading.Thread(target=receive, args=(outputString,))
+def startThreading(outputString, serverStatus):
+    receive_thread = threading.Thread(target=receive, args=(outputString, serverStatus))
     receive_thread.start()
 
 
@@ -199,6 +215,8 @@ def main():
     ROOT.title("Python File Sharing")
 
     outputString = tk.StringVar()
+    serverStatus= tk.StringVar()
+
 
     labelCommand = tk.Label(ROOT, text="Input Command:", font=('Helvetica', 18))
     labelCommand.pack(padx=10, pady=10)
@@ -209,13 +227,22 @@ def main():
 
     # Clicks this to execute the command
     buttonCommand = tk.Button(ROOT, text="Enter", font=('Helvetica', 18), 
-                              command=lambda:getCommandText(textboxCommand, outputString))
+                              command=lambda:getCommandText(textboxCommand, outputString, serverStatus))
     buttonCommand.pack(padx=10, pady=10)
 
     # Displays the output
     labelOutputTitle = tk.Label(ROOT, text="Output Area:", font=('Helvetica', 14))
     labelOutputTitle.pack()
     labelOutput = tk.Label(ROOT, textvariable=outputString,
+                           font=('Helvetica', 14),
+                           wraplength=450,
+                           justify="center")
+    labelOutput.pack(padx=10)
+
+    # Displays the Server Status
+    labelOutputTitle = tk.Label(ROOT, text="Server Status:", font=('Helvetica', 14))
+    labelOutputTitle.pack()
+    labelOutput = tk.Label(ROOT, textvariable=serverStatus,
                            font=('Helvetica', 14),
                            wraplength=450,
                            justify="center")

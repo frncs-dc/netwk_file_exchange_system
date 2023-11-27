@@ -91,12 +91,30 @@ def convertToString(files):
     
     return dir_list
 
+def convertToSentence(files):
+
+    dir_list = ''
+
+    for x in files:
+        dir_list += x + ' '
+    
+    return dir_list
+
 def getUserName(client_socket):
     try:
         index = clients.index(client_socket)
         username = nicknames[index]
 
         return username
+    except:
+        return False
+
+def findClientSocket(username):
+    try:
+        index = nicknames.index(username)
+        socket = clients[index]
+
+        return socket
     except:
         return False
 
@@ -164,6 +182,41 @@ def handle_client(client_socket, addr):
                 else:
                     client_socket.send("User not registered".encode())
             
+            elif command.startswith('/sendToAll'):
+                if getUserName(client_socket):
+                    messageList = command.split()
+                    del messageList[0]
+                    message = convertToSentence(messageList)
+                    messageToSend = getUserName(client_socket) + ": " + message
+                    for client in clients:
+                        if client_socket != client:
+                            try:
+                                client.send(messageToSend.encode())
+                            except Exception as e:
+                                print(f"Error broadcasting to {client}: {e}")
+                        else:
+                            client_socket.send("Message sent to all".encode())
+                else:
+                    client_socket.send("User not registered".encode())
+            
+            elif command.startswith('/send'):
+                if getUserName(client_socket):
+                    messageList = command.split()
+                    user = messageList[1]
+                    del messageList[0]
+                    del messageList[0]
+                    message = convertToSentence(messageList)
+                    messageToSend = getUserName(client_socket) + ": " + message
+                    receiver = findClientSocket(user)
+                    try:
+                        client_socket.send(f"Message sent to {user}".encode())
+                        receiver.send(messageToSend.encode())
+                    except Exception as e:
+                        client_socket.send("User doesn't exist!".encode())
+            
+                else:
+                    client_socket.send("User not registered".encode())
+
             elif command == '/leave':
                 if getUserName(client_socket):
                     curr_user = getUserName(client_socket)
@@ -182,12 +235,12 @@ def handle_client(client_socket, addr):
                     clients.remove(client_socket)
                     
                     client_socket.close()
-                    break
+                    # break
                 else:
                     client_socket.send("Connection closed. Thank you!".encode())
                     if client_socket.recv(4096).decode() == "Goodbye!":
                         client_socket.close()
-                        break
+                        # break
 
             else:
                  client_socket.send("Error: Command not found.".encode())
