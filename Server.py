@@ -31,7 +31,7 @@ def receive_file(client_socket, filename, save_directory):
                 f.write(data)
                 f.close()
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                broadcast_message = f"{timestamp}: File {filename} stored successfully."
+                broadcast_message = f"{client_directory} <{timestamp}>: Uploaded {filename}"
                 # client_socket.send(broadcast_message.encode())
                 for client in clients:
                     try:
@@ -69,10 +69,8 @@ def fetchFile(client_socket, filename):
         
 def start_server():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    # ip = input()
-    # port = input()
-    ip = "localhost"
-    port = "12345"
+    ip = input("IP: ")
+    port = input("Port: ")
     server.bind((ip, int(port)))
     server.listen(5)
     print("Server listening on port" + port)
